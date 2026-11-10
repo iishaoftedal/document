@@ -193,3 +193,15 @@ The local pnpm patch modifies wllama's memory64 capability detection and
 propagates fatal worker errors and explicit termination to pending and
 subsequent tasks; see
 patches/@wllama__wllama@3.6.1.patch.
+
+
+
+Changes in this copy (github.com/iishaoftedal/document)
+--------------------------------------------------------
+
+This repository is a modified copy of https://github.com/ranuts/document,
+under the same licence (GNU AGPL version 3, see LICENSE).
+
+2026-11-10  lib/embed-api.ts, docs/embed-api.md: the page that embeds the
+            editor can set it to light or dark (`theme` parameter and the
+            `document:set-theme` message).

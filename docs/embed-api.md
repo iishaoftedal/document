@@ -186,6 +186,21 @@ window.addEventListener('message', async (event) => {
 
 ---
 
+## Light or dark
+
+Added in this copy (iishaoftedal/document). The host can make the editor match its own look, at load with a
+`theme` parameter and at any time with a message. Only `light` and `dark` are accepted.
+
+```html
+<iframe src="https://your-deployment/editor?embed=1&theme=dark"></iframe>
+```
+
+```js
+sendEditorCommand('document:set-theme', { theme: 'light' });
+```
+
+---
+
 ## Query current state
 
 ```js
@@ -245,6 +260,7 @@ window.addEventListener('message', (event) => {
 | parent → iframe | `document:open-buffer`      | Open document from `ArrayBuffer` / `Uint8Array` |
 | parent → iframe | `document:set-readonly`     | Set read-only or editable                       |
 | parent → iframe | `document:save`             | Save and return `File`                          |
+| parent → iframe | `document:set-theme`        | Switch the editor to `light` or `dark`          |
 | parent → iframe | `document:get-state`        | Query current state                             |
 | iframe → parent | `document:ready`            | Editor initialised                              |
 | iframe → parent | `document:opened`           | Document opened                                 |
