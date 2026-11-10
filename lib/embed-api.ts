@@ -160,6 +160,24 @@ async function handleOpen(payload: Record<string, any>): Promise<void> {
   await openFile(makeFileFromPayload(payload), readonly);
 }
 
+/**
+ * Lets the host page choose light or dark, so the editor matches the app it
+ * sits in. Sets the same two things the site's own theme switch sets: the
+ * `data-ran-theme` attribute (the editor follows its flips, see
+ * `editor-theme.ts`) and the stored choice. Anything but "light" or "dark" is
+ * ignored. Added in this copy (iishaoftedal/document), 2026-11-10.
+ */
+function applyHostTheme(value: unknown): void {
+  if (value !== 'light' && value !== 'dark') return;
+  document.documentElement.setAttribute('data-ran-theme', value);
+  document.documentElement.style.colorScheme = value;
+  try {
+    window.localStorage.setItem('ran-theme', value);
+  } catch {
+    // Storage can be closed to an embedded page; the attribute is enough.
+  }
+}
+
 async function handleMessage(event: MessageEvent): Promise<void> {
   const message = event.data as EmbedMessage;
   if (
@@ -230,6 +248,10 @@ async function handleMessage(event: MessageEvent): Promise<void> {
         break;
       }
 
+      case 'document:set-theme':
+        applyHostTheme(payload.theme);
+        break;
+
       case 'document:get-state':
         postToParent(
           'document:state',
@@ -267,6 +289,7 @@ export function initEmbedApi(): void {
   }
 
   document.body.classList.add('embed-mode');
+  applyHostTheme(getQueryValue('theme'));
   // Pushed, not polled: the host needs it to decide when to save (a tab
   // switch, an idle timer) without exporting documents nobody touched.
   onUnsavedChangesChange((dirty) => {
