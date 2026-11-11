@@ -9,6 +9,11 @@ notes. Entries describe what users experience, not internal refactors.
 
 ### Changed
 
+- The editor now wears the Walters & Wally look: warm paper and ink by day,
+  graphite by night, crimson (cream at night) for the active tab and selection,
+  IBM Plex Sans for every label, and one row of chrome above the ribbon instead
+  of the coloured title band.
+
 - Nightly CI now runs the API surface, keyboard shortcut, and seeded monkey
   sweeps (previously documented as nightly but never scheduled).
 

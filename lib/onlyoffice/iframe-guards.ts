@@ -1,5 +1,6 @@
 import { installOpenFailureGuard } from './open-failure';
 import { injectLocalChromeCss } from './guards/chrome';
+import { injectWaltersLookCss, pushWaltersSkin } from './guards/walters-look';
 import { shadowSharedWorker } from './guards/shared-worker';
 import { installFetchFontsGuard } from './guards/fetch-fonts';
 import { installServerlessImagePipeline } from './guards/image-pipeline';
@@ -46,6 +47,8 @@ export function prepareEditorIframe(): boolean {
 
       installOpenFailureGuard(win);
       injectLocalChromeCss(doc);
+      injectWaltersLookCss(doc);
+      pushWaltersSkin(win);
       const assistantFocusGuarded = installAssistantFocusGuard(win);
 
       const sharedWorkerShadowed = shadowSharedWorker(win);

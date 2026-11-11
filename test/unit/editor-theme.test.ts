@@ -7,7 +7,7 @@ import {
   resolveEditorUiTheme,
 } from '../../lib/editor-theme';
 
-const LIGHT = 'theme-classic-light';
+const LIGHT = 'theme-white';
 const html = document.documentElement;
 
 afterEach(() => {
@@ -35,8 +35,8 @@ describe('isSiteDark', () => {
 describe('resolveEditorUiTheme', () => {
   it('maps a dark site to theme-dark and remembers that it drove it', () => {
     html.setAttribute('data-ran-theme', 'dark');
-    expect(resolveEditorUiTheme(LIGHT)).toBe('theme-dark');
-    expect(window.localStorage.getItem('ui-theme-site-driven')).toBe('theme-dark');
+    expect(resolveEditorUiTheme(LIGHT)).toBe('theme-night');
+    expect(window.localStorage.getItem('ui-theme-site-driven')).toBe('theme-night');
     expect(hasUserPickedEditorTheme()).toBe(false);
   });
 
@@ -56,7 +56,7 @@ describe('resolveEditorUiTheme', () => {
     html.setAttribute('data-ran-theme', 'dark');
     resolveEditorUiTheme(LIGHT);
     // The editor writes ui-theme-id with the theme it was told to use.
-    window.localStorage.setItem('ui-theme-id', 'theme-dark');
+    window.localStorage.setItem('ui-theme-id', 'theme-night');
     expect(hasUserPickedEditorTheme()).toBe(false);
     html.setAttribute('data-ran-theme', 'light');
     expect(resolveEditorUiTheme(LIGHT)).toBe(LIGHT);
@@ -76,8 +76,8 @@ describe('applySiteThemeToEditor / installEditorThemeFollow', () => {
   it('pushes the site theme into every editor frame that exposes Common.UI.Themes', () => {
     const { root, setTheme } = fakeEditorRoot();
     html.setAttribute('data-ran-theme', 'dark');
-    expect(applySiteThemeToEditor(LIGHT, root)).toBe('theme-dark');
-    expect(setTheme).toHaveBeenCalledWith('theme-dark');
+    expect(applySiteThemeToEditor(LIGHT, root)).toBe('theme-night');
+    expect(setTheme).toHaveBeenCalledWith('theme-night');
     // Same theme again: no redundant call.
     applySiteThemeToEditor(LIGHT, root);
     expect(setTheme).toHaveBeenCalledTimes(1);
@@ -100,7 +100,7 @@ describe('applySiteThemeToEditor / installEditorThemeFollow', () => {
     try {
       html.setAttribute('data-ran-theme', 'dark');
       await new Promise((r) => setTimeout(r, 0));
-      expect(setTheme).toHaveBeenCalledWith('theme-dark');
+      expect(setTheme).toHaveBeenCalledWith('theme-night');
       dispose();
       setTheme.mockClear();
       html.setAttribute('data-ran-theme', 'light');

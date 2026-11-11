@@ -170,6 +170,9 @@ third-party project https://github.com/cryptpad/onlyoffice-x2t-wasm.
     utilities this site's own interface is built with.
   * Fonts under public/fonts/ and public/ran-fonts/ -- see docs/font-licenses.md
     for the license of each family.
+  * IBM Plex Sans under public/walters/plex-sans/ (Copyright 2019 IBM Corp.),
+    the editor interface's label font in this copy -- SIL Open Font License
+    1.1, copy in that directory (OFL.txt).
   * Monaco Editor, under public/web-apps/vendor/monaco/ -- shipped by the
     vendor build; see the LICENSE and ThirdPartyNotices.txt files in that
     directory.
@@ -205,3 +208,12 @@ under the same licence (GNU AGPL version 3, see LICENSE).
 2026-11-10  lib/embed-api.ts, docs/embed-api.md: the page that embeds the
             editor can set it to light or dark (`theme` parameter and the
             `document:set-theme` message).
+2026-11-10  lib/onlyoffice/guards/walters-look.ts (guard 19),
+            lib/onlyoffice/ui-theme.ts, lib/editor-theme.ts,
+            lib/onlyoffice-editor.ts, public/walters/plex-sans/: the editor
+            interface is recoloured to the Walters & Wally brand (light:
+            the vendor's theme-white; dark: theme-night), labels are set in
+            IBM Plex Sans, and the coloured title band is folded into the tab
+            row (compactHeader). No vendor file is changed; the colours are a
+            stylesheet injected into the editor frame. lib/embed-api.ts: the
+            `document:set-theme` message type is declared.
