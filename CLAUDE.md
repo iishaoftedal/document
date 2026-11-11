@@ -85,7 +85,7 @@ lib/                  # 应用层（纯 TypeScript，只在本站点用）
     readonly.ts           # 运行时只读（挂载永远可编辑，加载后加 restriction，并经 vendor 的
                           # editing:disable 锁面板、只留 File/View 页签并藏起编辑按钮，见 #298）
     save-point.ts         # embed 保存后移动 SDK 的 SavedIndex（导出期间历史没动才移），让之后的编辑重新触发 onDocumentStateChange
-    ui-theme.ts           # 默认经典主题与站点主题跟随
+    ui-theme.ts           # 默认主题（theme-white，品牌色见守卫 19）与站点主题跟随
     file-helpers.ts       # 文件名/MIME/字节形状小工具
   ui.ts                 # 落地 hero 显隐 + 控制面板（右下角 Menu FAB 已于 2026-08-20 移除）
   analytics.ts          # Cloudflare Web Analytics（刻意不用 GA；线上实际走 CF 面板边缘注入，因此 embed 视图会被计入、/embed-demo 双计，读数规则见 docs/explorations/2026-08-17-analytics-edge-injection-double-count.md）
@@ -1103,8 +1103,10 @@ v7 代码分支（OO_VARIANT、页面级 x2t 打开转换、empty_bin 模板、v
 - **PDF 打开**：已接入（2026-08-15）。api.js 按 `document.fileType === 'pdf'`
   自动路由 pdfeditor，页面侧只需类型映射（`DOCUMENT_TYPE_MAP.pdf` +
   `getDocumentType`）与文件选择 accept；保存与其他格式共用 file-stream 通道。
-- **界面主题**：默认经典 Office 主题 `theme-classic-light`（2026-08-15 起；v9
-  加载器原默认 `theme-white` 纯白），经 `customization.uiTheme` 传入。该参数
+- **界面主题**：亮色 `theme-white`、暗色 `theme-night`（2026-11-10 起，本副本；此前为
+  经典 `theme-classic-light` / `theme-dark`），由守卫 19（`guards/walters-look.ts`）注入的
+  样式表改成 Walters & Wally 品牌色与 IBM Plex Sans，并用 `asc_setSkin` 把画布颜色重新交给
+  SDK（它只在启动时读一次）。经 `customization.uiTheme` 传入。该参数
   启动时压过编辑器自存的 `ui-theme-id`，所以 `resolveUiTheme()` 先读同源
   localStorage 里用户手选的主题、没有才回退经典，别改成硬编码。见
   docs/explorations/2026-08-15-classic-office-ui-theme.md。

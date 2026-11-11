@@ -198,6 +198,12 @@ function createPersonalEditorInstance(config: {
         // information. Product marks are hidden separately; see NOTICE.
         hideRightMenu: true,
         uiTheme: resolveUiTheme(),
+        // One row of chrome above the ribbon, not two: the vendor's coloured
+        // title band (file name, save, print, undo, redo) folds into the tab
+        // row. Embedded, the host already shows the document's name, so the
+        // editor does not repeat it.
+        compactHeader: true,
+        ...(isEmbedMode() ? { toolbarHideFileName: true } : {}),
         ...(isCompactViewport() ? compactViewportCustomization() : {}),
         features: {
           featuresTips: false,

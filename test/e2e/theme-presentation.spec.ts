@@ -71,7 +71,7 @@ for (const theme of ['light', 'dark'] as const) {
         },
         { timeout: 60_000 },
       )
-      .toBe(theme === 'dark' ? 'theme-dark' : 'theme-classic-light');
+      .toBe(theme === 'dark' ? 'theme-night' : 'theme-white');
   });
 }
 

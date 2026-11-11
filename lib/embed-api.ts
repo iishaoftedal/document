@@ -14,6 +14,7 @@ type EmbedMessageType =
   | 'document:open-file'
   | 'document:open-buffer'
   | 'document:set-readonly'
+  | 'document:set-theme'
   | 'document:save'
   | 'document:get-state';
 

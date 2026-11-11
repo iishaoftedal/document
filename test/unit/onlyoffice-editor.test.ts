@@ -642,10 +642,15 @@ describe('onlyoffice-editor', () => {
       expect(config.editorConfig.customization.features.spellcheck).toEqual({ mode: false, change: false });
     });
 
-    it('defaults the interface theme to classic Office light', async () => {
+    it('defaults the interface theme to the flat white theme the brand sheet recolours', async () => {
       window.localStorage.removeItem('ui-theme-id');
       const config = await createAndGetConfig({ fileName: 'a.docx', fileType: 'docx' });
-      expect(config.editorConfig.customization.uiTheme).toBe('theme-classic-light');
+      expect(config.editorConfig.customization.uiTheme).toBe('theme-white');
+    });
+
+    it('folds the title band into the tab row', async () => {
+      const config = await createAndGetConfig({ fileName: 'a.docx', fileType: 'docx' });
+      expect(config.editorConfig.customization.compactHeader).toBe(true);
     });
 
     it('keeps a theme the user already picked inside the editor', async () => {
@@ -663,7 +668,7 @@ describe('onlyoffice-editor', () => {
       document.documentElement.setAttribute('data-ran-theme', 'dark');
       try {
         const config = await createAndGetConfig({ fileName: 'a.docx', fileType: 'docx' });
-        expect(config.editorConfig.customization.uiTheme).toBe('theme-dark');
+        expect(config.editorConfig.customization.uiTheme).toBe('theme-night');
       } finally {
         document.documentElement.removeAttribute('data-ran-theme');
         window.localStorage.removeItem('ui-theme-site-driven');
