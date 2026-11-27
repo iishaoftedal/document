@@ -7,6 +7,9 @@ const mockSetDocmentObj = vi.fn();
 const mockGetReadonlyMode = vi.fn().mockReturnValue(false);
 const mockSetReadonlyMode = vi.fn();
 const mockRequestSaveDocument = vi.fn();
+const mockReadSelection = vi.fn().mockReturnValue({ kind: 'none', letters: 0 });
+const mockReplaceSelection = vi.fn();
+const mockWatchSelection = vi.fn().mockReturnValue(() => {});
 
 vi.mock('../../lib/document', () => ({ openDocumentFromUrl: mockOpenDocumentFromUrl }));
 vi.mock('../../lib/converter', () => ({
@@ -19,6 +22,18 @@ vi.mock('../../lib/onlyoffice-editor', () => ({
   setReadonlyMode: mockSetReadonlyMode,
   requestSaveDocument: mockRequestSaveDocument,
 }));
+
+// The picked-words module is unit-tested on its own (embed-selection.test.ts);
+// here only the routing. Mocked so its watcher sets no timers in these tests.
+vi.mock('../../lib/embed-selection', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/embed-selection')>('../../lib/embed-selection');
+  return {
+    SelectionError: actual.SelectionError,
+    readSelection: mockReadSelection,
+    replaceSelection: mockReplaceSelection,
+    watchSelection: mockWatchSelection,
+  };
+});
 
 async function dispatchMessage(
   data: unknown,
@@ -464,6 +479,57 @@ describe('embed-api', () => {
       expectMessagePosted(postMessageSpy, 'document:error', 'invalid-1', {
         message: expect.stringContaining('document:open requires'),
       });
+    });
+  });
+
+  describe('picked words (added in this copy)', () => {
+    beforeEach(() => {
+      window.history.pushState({}, '', '/?embed=1');
+    });
+
+    it('answers document:get-selection with document:selection', async () => {
+      mockReadSelection.mockReturnValueOnce({ kind: 'text', letters: 5, text: 'Hello', paragraphs: 1 });
+      const { initEmbedApi } = await import('../../lib/embed-api');
+      initEmbedApi();
+      await dispatchMessage({ type: 'document:get-selection', id: 'sel-1' });
+      expectMessagePosted(postMessageSpy, 'document:selection', 'sel-1', { kind: 'text', letters: 5, text: 'Hello' });
+    });
+
+    it('answers document:replace-selection with document:selection-replaced', async () => {
+      mockReplaceSelection.mockReturnValueOnce({ letters: 3, text: 'Hey' });
+      const { initEmbedApi } = await import('../../lib/embed-api');
+      initEmbedApi();
+      await dispatchMessage({
+        type: 'document:replace-selection',
+        id: 'rep-1',
+        payload: { lines: ['Hey'], expect: 'Hello' },
+      });
+      expect(mockReplaceSelection).toHaveBeenCalledWith({ lines: ['Hey'], expect: 'Hello' });
+      expectMessagePosted(postMessageSpy, 'document:selection-replaced', 'rep-1', { letters: 3, text: 'Hey' });
+    });
+
+    it('passes the reason code of a refused replace on document:error', async () => {
+      const { SelectionError } = await import('../../lib/embed-selection');
+      mockReplaceSelection.mockImplementationOnce(() => {
+        throw new SelectionError('selection-changed', 'The picked words are not the ones that were read');
+      });
+      const { initEmbedApi } = await import('../../lib/embed-api');
+      initEmbedApi();
+      await dispatchMessage({
+        type: 'document:replace-selection',
+        id: 'rep-2',
+        payload: { lines: ['x'], expect: 'y' },
+      });
+      expectMessagePosted(postMessageSpy, 'document:error', 'rep-2', { code: 'selection-changed' });
+    });
+
+    it('pushes document:selection-changed with only the kind and the count', async () => {
+      const { initEmbedApi } = await import('../../lib/embed-api');
+      initEmbedApi();
+      const push = mockWatchSelection.mock.calls.at(-1)![0] as (p: { kind: string; letters: number }) => void;
+      push({ kind: 'text', letters: 12 });
+      const pushed = postedMessages(postMessageSpy).filter((m) => m?.type === 'document:selection-changed');
+      expect(pushed.at(-1)?.payload).toEqual({ kind: 'text', letters: 12 });
     });
   });
 });

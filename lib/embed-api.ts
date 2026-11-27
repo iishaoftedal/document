@@ -5,6 +5,7 @@ import { getDocmentObj, setDocmentObj } from '@ranuts/shared/store';
 import { handleDocumentOperation, loadEditorApi } from './converter';
 import { openDocumentFromUrl } from './document';
 import { getReadonlyMode, requestSaveDocument, setReadonlyMode } from './onlyoffice-editor';
+import { readSelection, replaceSelection, SelectionError, watchSelection } from './embed-selection';
 import { captureSavePoint, commitSavePoint } from './onlyoffice/save-point';
 import { hasUnsavedChanges, markDocumentSaved, onUnsavedChangesChange } from './unsaved-guard';
 
@@ -16,7 +17,9 @@ type EmbedMessageType =
   | 'document:set-readonly'
   | 'document:set-theme'
   | 'document:save'
-  | 'document:get-state';
+  | 'document:get-state'
+  | 'document:get-selection'
+  | 'document:replace-selection';
 
 type EmbedMessage = {
   id?: string;
@@ -253,6 +256,15 @@ async function handleMessage(event: MessageEvent): Promise<void> {
         applyHostTheme(payload.theme);
         break;
 
+      // The picked words (added in this copy, 2026-11-26; see embed-selection.ts).
+      case 'document:get-selection':
+        postToParent('document:selection', { ...readSelection() }, message.id);
+        break;
+
+      case 'document:replace-selection':
+        postToParent('document:selection-replaced', replaceSelection(payload), message.id);
+        break;
+
       case 'document:get-state':
         postToParent(
           'document:state',
@@ -269,6 +281,7 @@ async function handleMessage(event: MessageEvent): Promise<void> {
       'document:error',
       {
         message: error instanceof Error ? error.message : String(error),
+        ...(error instanceof SelectionError ? { code: error.code } : {}),
       },
       message.id,
     );
@@ -295,6 +308,10 @@ export function initEmbedApi(): void {
   // switch, an idle timer) without exporting documents nobody touched.
   onUnsavedChangesChange((dirty) => {
     postToParent('document:dirty-changed', { dirty });
+  });
+  // Only the kind and the count cross unasked; the words cross only when asked.
+  watchSelection((picked) => {
+    postToParent('document:selection-changed', picked);
   });
   window.addEventListener('message', (event) => {
     void handleMessage(event);
