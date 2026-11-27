@@ -548,6 +548,32 @@ describe('onlyoffice-editor', () => {
       }
     });
 
+    it('answers the editor asking for comment authors with the pictures the host named (added in this copy)', async () => {
+      const { setEditorPeople } = await import('../../lib/onlyoffice/editor-user');
+      setEditorPeople([{ id: 'author-wally-ai-', name: 'Wally (AI)', image: 'data:image/png;base64,iVBORw0KGgo=' }]);
+      try {
+        const config = await createAndGetConfig({
+          fileName: 'lease.docx',
+          fileType: 'docx',
+          binData: new ArrayBuffer(8),
+        });
+        const setUsers = vi.fn();
+        (window as unknown as { editor: unknown }).editor = {
+          ...(window as unknown as { editor: object }).editor,
+          setUsers,
+        };
+        config.events.onRequestUsers({ data: { c: 'info', id: ['author-wally-ai-', 'someone'] } });
+        expect(setUsers).toHaveBeenCalledWith({
+          c: 'info',
+          users: [{ id: 'author-wally-ai-', name: 'Wally (AI)', image: 'data:image/png;base64,iVBORw0KGgo=' }],
+        });
+        config.events.onRequestUsers({ data: { c: 'mention' } });
+        expect(setUsers).toHaveBeenLastCalledWith({ c: 'mention', users: [] });
+      } finally {
+        setEditorPeople([]);
+      }
+    });
+
     it('always passes a non-empty Guest user to avoid the getInitials crash (#25)', async () => {
       const config = await createAndGetConfig({
         fileName: 'preview.docx',

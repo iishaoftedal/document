@@ -248,6 +248,21 @@ nowhere else: the editor has no server and does not store, log or send it.
 sendEditorCommand('document:open-file', { file, user: { id: 'owner-42', name: 'Sam Rivera' } });
 ```
 
+**Pictures for authors who are not people.** An open message may also name comment authors with a picture
+(`people: [{ name, image }]`, up to 20). The editor draws that author's comments with the picture in place of a round
+mark with their initials, so an assistant that leaves comments is not drawn like a person. A picture is a small image
+held in the message itself (a `data:` address, PNG, JPEG or SVG, at most 64 KB); nothing is fetched. The next open
+replaces the list. When the editor asks for an author it has no picture for (or for the list of people to mention
+with @), it is answered with nobody.
+
+```js
+sendEditorCommand('document:open-file', {
+  file,
+  user,
+  people: [{ name: 'Wally (AI)', image: 'data:image/svg+xml;base64,…' }],
+});
+```
+
 **A comment from the host.**
 
 ```js

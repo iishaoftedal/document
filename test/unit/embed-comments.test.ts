@@ -4,7 +4,18 @@ const { mockGetReadonlyMode } = vi.hoisted(() => ({ mockGetReadonlyMode: vi.fn()
 vi.mock('../../lib/onlyoffice/readonly', () => ({ getReadonlyMode: mockGetReadonlyMode }));
 
 import { addComment, CommentError } from '../../lib/embed-comments';
-import { editorUserFrom, getEditorUser, GUEST, setEditorUser, USER_NAME_LIMIT } from '../../lib/onlyoffice/editor-user';
+import {
+  authorIdFor,
+  editorPeopleFor,
+  editorPeopleFrom,
+  editorUserFrom,
+  getEditorUser,
+  GUEST,
+  PICTURE_LIMIT,
+  setEditorPeople,
+  setEditorUser,
+  USER_NAME_LIMIT,
+} from '../../lib/onlyoffice/editor-user';
 
 /** A stand-in for the Write or Slides editor: words to find, and the comments added. */
 function textEditor(words: string, opts: { noFind?: boolean } = {}) {
@@ -182,5 +193,45 @@ describe('embed-comments (added in this copy)', () => {
   it('says so when the editor cannot look for words', () => {
     mount(textEditor(LEASE, { noFind: true }));
     expect(() => addComment({ text: 'x', quote: 'rent' })).toThrow(CommentError);
+  });
+});
+
+describe('pictures for comment authors (added in this copy)', () => {
+  afterEach(() => setEditorPeople([]));
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+
+  it('takes a named author with a small picture held in the message', () => {
+    expect(editorPeopleFrom([{ name: 'Wally (AI)', image: png }])).toEqual([
+      { id: 'author-wally-ai-', name: 'Wally (AI)', image: png },
+    ]);
+    expect(authorIdFor('Wally (AI)')).toBe('author-wally-ai-');
+  });
+
+  it('leaves out a picture that would be fetched, is not an image, or is too big, and anything not a list', () => {
+    expect(editorPeopleFrom([{ name: 'Wally (AI)', image: 'https://example.com/w.png' }])).toEqual([]);
+    expect(editorPeopleFrom([{ name: 'Wally (AI)', image: 'data:text/html;base64,PGI+' }])).toEqual([]);
+    expect(
+      editorPeopleFrom([{ name: 'Wally (AI)', image: `data:image/png;base64,${'A'.repeat(PICTURE_LIMIT)}` }]),
+    ).toEqual([]);
+    expect(editorPeopleFrom([{ name: '  ', image: png }])).toEqual([]);
+    expect(editorPeopleFrom('Wally')).toEqual([]);
+  });
+
+  it('answers only for the ids asked about', () => {
+    setEditorPeople(editorPeopleFrom([{ name: 'Wally (AI)', image: png }]));
+    expect(editorPeopleFor(['author-wally-ai-', 'owner-1'])).toHaveLength(1);
+    expect(editorPeopleFor('author-wally-ai-')).toHaveLength(1);
+    expect(editorPeopleFor(['owner-1'])).toEqual([]);
+  });
+
+  it('a comment signed by a named author carries the id its picture is found by', () => {
+    const editor = textEditor(LEASE);
+    mount(editor);
+    setEditorUser(editorUserFrom({ id: 'owner-1', name: 'Sam Rivera' }));
+    addComment({ text: 'Check this.', author: 'Wally (AI)', quote: 'The rent is $2,400 a month' });
+    expect(editor.added[0]).toMatchObject({ author: 'Wally (AI)', userId: authorIdFor('Wally (AI)') });
+    frame?.remove();
+    delete (window as unknown as { editor?: unknown }).editor;
+    setEditorUser(null);
   });
 });
