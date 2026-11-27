@@ -216,11 +216,48 @@ export function replaceSelection(payload: Record<string, unknown>): { letters: n
   const look = logic.GetDirectTextPr();
   const settings = new Settings();
   if (look) settings.SetTextPr(look.Copy());
+  const view = keepView(api);
   logic.AddTextWithPr(text, settings);
+  view();
   return { letters: text.length, text };
 }
 
 type Push = (payload: { kind: SelectionKind; letters: number }) => void;
+
+interface ScrollBar {
+  getCurScrolledX?(): number;
+  getCurScrolledY?(): number;
+  scrollToX?(x: number): void;
+  scrollToY?(y: number): void;
+}
+
+/**
+ * Notes where the page is scrolled, and gives back a function that puts it
+ * there again. The editor scrolls to keep the cursor in sight after new words
+ * go in; for words changed in place the page should not move, or it looks as
+ * if it jumped (a narrow window scrolled sideways to the end of the new words).
+ */
+function keepView(api: EditorApi): () => void {
+  const control = api.WordControl as { m_oScrollHorApi?: ScrollBar; m_oScrollVerApi?: ScrollBar } | undefined;
+  const across = control?.m_oScrollHorApi;
+  const down = control?.m_oScrollVerApi;
+  const x = across?.getCurScrolledX?.();
+  const y = down?.getCurScrolledY?.();
+  const restore = () => {
+    try {
+      if (typeof x === 'number' && across?.getCurScrolledX?.() !== x) across?.scrollToX?.(x);
+      if (typeof y === 'number' && down?.getCurScrolledY?.() !== y) down?.scrollToY?.(y);
+    } catch {
+      // A view that cannot be put back stays where the editor put it.
+    }
+  };
+  return () => {
+    restore();
+    // The editor may scroll once more as it draws the new words.
+    setTimeout(restore, 0);
+    setTimeout(restore, 120);
+  };
+}
 
 /**
  * Push `{ kind, letters }` whenever what is picked changes, at most four times a
