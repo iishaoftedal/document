@@ -73,7 +73,7 @@ jobs:
                 echo "::error::Cloudflare Pages preview deployment concluded: $CONCLUSION. Inspect the Pages deployment logs and compare the 'E2E (Cloudflare Pages semantics)' checks to identify the failed stage. For a transient failure, retry in the Pages dashboard or push again to trigger a new deployment. See docs/explorations/2026-08-21-cloudflare-preview-flake.md"
                 exit 1
               fi
-              URL=$(printf '%s' "$RUN" | jq -r '.summary' | grep -oE 'https://[a-z0-9-]+\.document-[a-z0-9]+\.pages\.dev' | head -1)
+              URL=$(printf '%s' "$RUN" | jq -r '.summary' | grep -oE 'https://[a-z0-9-]+\.(document-[a-z0-9]+|walters-office)\.pages\.dev' | head -1)
               if [ -z "$URL" ]; then echo "::error::preview URL not found in the check summary"; exit 1; fi
               echo "preview: $URL"
               echo "url=$URL" >> "$GITHUB_OUTPUT"
