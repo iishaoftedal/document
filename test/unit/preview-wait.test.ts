@@ -86,6 +86,14 @@ it('keeps waiting for a deployment that has appeared, even if a later poll is em
   expect(result.stdout).toContain('https://123.document-7hm.pages.dev');
 });
 
+it("finds the preview of this copy's own Cloudflare Pages project (walters-office)", () => {
+  const result = runPreview([
+    '{"status":"completed","conclusion":"success","summary":"<a href=\'https://837d0428.walters-office.pages.dev\'>https://837d0428.walters-office.pages.dev</a>"}',
+  ]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain('preview: https://837d0428.walters-office.pages.dev');
+});
+
 it('reports an API failure instead of treating it as an absent deployment', () => {
   const result = runPreview([], true);
   expect(result.status).toBe(1);

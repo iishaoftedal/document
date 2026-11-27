@@ -201,6 +201,39 @@ sendEditorCommand('document:set-theme', { theme: 'light' });
 
 ---
 
+## Picked words
+
+Added in this copy (iishaoftedal/document), 2026-11-26. The host can learn what the user has picked, read the
+picked words when it needs them, and write new words over them. The words cross only when the host asks.
+
+```js
+// Pushed by the editor whenever what is picked changes, at most four times a second.
+// Only the kind and a count: never the words themselves.
+// { type: 'document:selection-changed', payload: { kind: 'text', letters: 42 } }
+
+sendEditorCommand('document:get-selection');
+// Response: { type: 'document:selection', payload: { kind: 'text', letters: 42, text: '...', paragraphs: 1 } }
+// In a spreadsheet: { kind: 'cells', letters: 0, cells: 13, range: 'B2:B14' }
+
+sendEditorCommand('document:replace-selection', { lines: ['New words.'], expect: '...the words as read...' });
+// Response: { type: 'document:selection-replaced', payload: { letters: 10, text: 'New words.' } }
+```
+
+- `kind` is `none`, `text`, `cells` or `other` (a picture, a shape, separate blocks of cells, or typing inside a
+  cell). In a spreadsheet the single cell that is always selected counts as `none`; two or more cells are `cells`,
+  with the range.
+- At most 6,000 letters are handed over. Past that `document:selection` has `tooLong: true` and no `text`.
+- `document:replace-selection` changes nothing, and answers `document:error` with `code: 'selection-changed'`,
+  when what is picked now is not `expect` (the user typed or picked something else meanwhile). It writes through
+  the editor's own add-text action with the look of the first picked letter (bold stays bold), as one step that the
+  editor's own Undo takes back. Write and Slides only; cells are refused (`code: 'not-supported'`).
+- One paragraph at a time: a whole paragraph picked with its paragraph end is narrowed to its words, and words that
+  reach into a second paragraph are refused (`code: 'not-supported'`), so no paragraph or bullet is merged away.
+  Several `lines` are joined with spaces.
+- Other codes on `document:error`: `read-only`, `no-selection` (no document), `bad-request`, `not-verified`.
+
+---
+
 ## Query current state
 
 ```js
@@ -253,19 +286,24 @@ window.addEventListener('message', (event) => {
 
 ## Message reference
 
-| Direction       | Type                        | Description                                     |
-| --------------- | --------------------------- | ----------------------------------------------- |
-| parent → iframe | `document:open-url`         | Open document from URL                          |
-| parent → iframe | `document:open-file`        | Open document from `File` / `Blob`              |
-| parent → iframe | `document:open-buffer`      | Open document from `ArrayBuffer` / `Uint8Array` |
-| parent → iframe | `document:set-readonly`     | Set read-only or editable                       |
-| parent → iframe | `document:save`             | Save and return `File`                          |
-| parent → iframe | `document:set-theme`        | Switch the editor to `light` or `dark`          |
-| parent → iframe | `document:get-state`        | Query current state                             |
-| iframe → parent | `document:ready`            | Editor initialised                              |
-| iframe → parent | `document:opened`           | Document opened                                 |
-| iframe → parent | `document:readonly-changed` | Read-only state changed                         |
-| iframe → parent | `document:saved`            | Save complete, file returned (with `dirty`)     |
-| iframe → parent | `document:dirty-changed`    | Unsaved-changes flag flipped (`{ dirty }`)      |
-| iframe → parent | `document:state`            | Current state response                          |
-| iframe → parent | `document:error`            | Operation failed                                |
+| Direction       | Type                          | Description                                        |
+| --------------- | ----------------------------- | -------------------------------------------------- |
+| parent → iframe | `document:open-url`           | Open document from URL                             |
+| parent → iframe | `document:open-file`          | Open document from `File` / `Blob`                 |
+| parent → iframe | `document:open-buffer`        | Open document from `ArrayBuffer` / `Uint8Array`    |
+| parent → iframe | `document:set-readonly`       | Set read-only or editable                          |
+| parent → iframe | `document:save`               | Save and return `File`                             |
+| parent → iframe | `document:set-theme`          | Switch the editor to `light` or `dark`             |
+| parent → iframe | `document:get-state`          | Query current state                                |
+| parent → iframe | `document:get-selection`      | Read what is picked (added in this copy)           |
+| parent → iframe | `document:replace-selection`  | Write new words over the picked ones (this copy)   |
+| iframe → parent | `document:ready`              | Editor initialised                                 |
+| iframe → parent | `document:opened`             | Document opened                                    |
+| iframe → parent | `document:readonly-changed`   | Read-only state changed                            |
+| iframe → parent | `document:saved`              | Save complete, file returned (with `dirty`)        |
+| iframe → parent | `document:dirty-changed`      | Unsaved-changes flag flipped (`{ dirty }`)         |
+| iframe → parent | `document:state`              | Current state response                             |
+| iframe → parent | `document:selection`          | What is picked (`kind`, `letters`, `text`/`range`) |
+| iframe → parent | `document:selection-changed`  | What is picked changed (`{ kind, letters }`)       |
+| iframe → parent | `document:selection-replaced` | New words written over the picked ones             |
+| iframe → parent | `document:error`              | Operation failed                                   |
