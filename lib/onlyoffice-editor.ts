@@ -1,3 +1,4 @@
+import { getEditorUser } from './onlyoffice/editor-user';
 import { isEmbedMode } from './embed-mode';
 import { getDocumentCloseRevision } from './document-open';
 import 'ranui/message';
@@ -185,10 +186,8 @@ function createPersonalEditorInstance(config: {
       // spreadsheet editor (found by the UI crawl).
       coEditing: { mode: 'fast', change: false },
       lang: editorLang,
-      user: {
-        id: 'local-user',
-        name: 'Guest',
-      },
+      // "Guest" unless the embedding page named the person on its open message (onlyoffice/editor-user.ts).
+      user: { ...getEditorUser() },
       customization: {
         ...(!isEmbedMode()
           ? { goback: { url: new URL('/', location.href).href, blank: false, text: t('editorBackHome') } }

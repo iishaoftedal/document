@@ -10,6 +10,7 @@ const mockRequestSaveDocument = vi.fn();
 const mockReadSelection = vi.fn().mockReturnValue({ kind: 'none', letters: 0 });
 const mockReplaceSelection = vi.fn();
 const mockWatchSelection = vi.fn().mockReturnValue(() => {});
+const mockAddComment = vi.fn();
 
 vi.mock('../../lib/document', () => ({ openDocumentFromUrl: mockOpenDocumentFromUrl }));
 vi.mock('../../lib/converter', () => ({
@@ -33,6 +34,12 @@ vi.mock('../../lib/embed-selection', async () => {
     replaceSelection: mockReplaceSelection,
     watchSelection: mockWatchSelection,
   };
+});
+
+// The comment module is unit-tested on its own (embed-comments.test.ts); here only the routing.
+vi.mock('../../lib/embed-comments', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/embed-comments')>('../../lib/embed-comments');
+  return { CommentError: actual.CommentError, addComment: mockAddComment };
 });
 
 async function dispatchMessage(
@@ -530,6 +537,51 @@ describe('embed-api', () => {
       push({ kind: 'text', letters: 12 });
       const pushed = postedMessages(postMessageSpy).filter((m) => m?.type === 'document:selection-changed');
       expect(pushed.at(-1)?.payload).toEqual({ kind: 'text', letters: 12 });
+    });
+  });
+
+  describe('comments and the name (added in this copy)', () => {
+    beforeEach(() => {
+      window.history.pushState({}, '', '/?embed=1');
+    });
+
+    it('opens as the person the host names, and as Guest when it names nobody', async () => {
+      const { initEmbedApi } = await import('../../lib/embed-api');
+      const { getEditorUser } = await import('../../lib/onlyoffice/editor-user');
+      initEmbedApi();
+      const file = new File(['x'], 'Lease.docx');
+      await dispatchMessage({
+        type: 'document:open-file',
+        id: 'u-1',
+        payload: { file, user: { id: 'o1', name: 'Sam Rivera' } },
+      });
+      expect(getEditorUser()).toEqual({ id: 'o1', name: 'Sam Rivera' });
+      await dispatchMessage({ type: 'document:open-file', id: 'u-2', payload: { file } });
+      expect(getEditorUser()).toEqual({ id: 'local-user', name: 'Guest' });
+    });
+
+    it('answers document:add-comment with document:comment-added', async () => {
+      mockAddComment.mockReturnValueOnce({ quote: 'The rent', author: 'Wally' });
+      const { initEmbedApi } = await import('../../lib/embed-api');
+      initEmbedApi();
+      await dispatchMessage({
+        type: 'document:add-comment',
+        id: 'c-1',
+        payload: { text: 'Check this.', author: 'Wally', quote: 'The rent' },
+      });
+      expect(mockAddComment).toHaveBeenCalledWith({ text: 'Check this.', author: 'Wally', quote: 'The rent' });
+      expectMessagePosted(postMessageSpy, 'document:comment-added', 'c-1', { quote: 'The rent', author: 'Wally' });
+    });
+
+    it('passes the reason code of a refused comment on document:error', async () => {
+      const { CommentError } = await import('../../lib/embed-comments');
+      mockAddComment.mockImplementationOnce(() => {
+        throw new CommentError('not-once', 'Those words are in the document 2 times');
+      });
+      const { initEmbedApi } = await import('../../lib/embed-api');
+      initEmbedApi();
+      await dispatchMessage({ type: 'document:add-comment', id: 'c-2', payload: { text: 'x', quote: 'the' } });
+      expectMessagePosted(postMessageSpy, 'document:error', 'c-2', { code: 'not-once' });
     });
   });
 });

@@ -6,6 +6,8 @@ import { handleDocumentOperation, loadEditorApi } from './converter';
 import { openDocumentFromUrl } from './document';
 import { getReadonlyMode, requestSaveDocument, setReadonlyMode } from './onlyoffice-editor';
 import { readSelection, replaceSelection, SelectionError, watchSelection } from './embed-selection';
+import { addComment, CommentError } from './embed-comments';
+import { editorUserFrom, setEditorUser } from './onlyoffice/editor-user';
 import { captureSavePoint, commitSavePoint } from './onlyoffice/save-point';
 import { hasUnsavedChanges, markDocumentSaved, onUnsavedChangesChange } from './unsaved-guard';
 
@@ -19,7 +21,8 @@ type EmbedMessageType =
   | 'document:save'
   | 'document:get-state'
   | 'document:get-selection'
-  | 'document:replace-selection';
+  | 'document:replace-selection'
+  | 'document:add-comment';
 
 type EmbedMessage = {
   id?: string;
@@ -152,6 +155,9 @@ async function openFile(file: File, readonly = false): Promise<void> {
 
 async function handleOpen(payload: Record<string, any>): Promise<void> {
   const readonly = Boolean(payload.readonly);
+  // Who the document opens as: its comments are signed with this name (added in this copy, 2026-11-26;
+  // see onlyoffice/editor-user.ts). An open with no `user` is "Guest", as before.
+  setEditorUser(editorUserFrom(payload.user));
 
   if (payload.url) {
     await openDocumentFromUrl(String(payload.url), payload.fileName, {
@@ -265,6 +271,11 @@ async function handleMessage(event: MessageEvent): Promise<void> {
         postToParent('document:selection-replaced', replaceSelection(payload), message.id);
         break;
 
+      // A comment from the host (added in this copy, 2026-11-26; see embed-comments.ts).
+      case 'document:add-comment':
+        postToParent('document:comment-added', { ...addComment(payload) }, message.id);
+        break;
+
       case 'document:get-state':
         postToParent(
           'document:state',
@@ -281,7 +292,7 @@ async function handleMessage(event: MessageEvent): Promise<void> {
       'document:error',
       {
         message: error instanceof Error ? error.message : String(error),
-        ...(error instanceof SelectionError ? { code: error.code } : {}),
+        ...(error instanceof SelectionError || error instanceof CommentError ? { code: error.code } : {}),
       },
       message.id,
     );
