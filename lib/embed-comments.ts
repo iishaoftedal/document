@@ -12,6 +12,7 @@
  *   no quote (`not-supported`), only the picked cell.
  * - `author` is the name the comment is signed with. Left out, it is the person the document was opened as.
  * - Nothing is added to a document opened read-only (`read-only`).
+ * - Words found for a quote are let go once the comment is on them, so nothing is left picked.
  */
 import { getEditorContext, type EditorApi } from './agent-plugin/editor-bridge';
 import { getEditorUser, USER_NAME_LIMIT } from './onlyoffice/editor-user';
@@ -109,5 +110,7 @@ export function addComment(payload: Record<string, unknown>): CommentAdded {
   data.asc_putSolved?.(false);
   api.asc_addComment(data);
   (api as unknown as FindingApi).asc_endFindText?.();
+  // Words the editor found for a quote are let go again: the person picked nothing, so nothing stays picked.
+  if (quote !== undefined) api.asc_RemoveSelection?.();
   return quote !== undefined ? { quote, author } : { author };
 }

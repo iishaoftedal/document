@@ -45,6 +45,7 @@ function textEditor(words: string, opts: { noFind?: boolean } = {}) {
   const api: Record<string, unknown> = {
     asc_addComment: vi.fn((data: asc_CCommentDataWord) => added.push({ ...data.fields, on: searched?.text ?? null })),
     asc_endFindText: vi.fn(),
+    asc_RemoveSelection: vi.fn(),
   };
   if (!opts.noFind) {
     api.asc_findText = vi.fn((s: CSearchSettings) => {
@@ -128,6 +129,8 @@ describe('embed-comments (added in this copy)', () => {
       on: 'The rent is $2,400 a month',
     });
     expect(typeof editor.added[0]!.time).toBe('string');
+    // The found words are let go: nothing is left picked.
+    expect(editor.api.asc_RemoveSelection).toHaveBeenCalledTimes(1);
   });
 
   it('adds nothing when the words are not there, or are there more than once', () => {
@@ -148,6 +151,8 @@ describe('embed-comments (added in this copy)', () => {
     mount(editor);
     expect(addComment({ text: 'Looks right.' })).toEqual({ author: 'Sam Rivera' });
     expect(editor.api.asc_findText).not.toHaveBeenCalled();
+    // What the person picked stays picked.
+    expect(editor.api.asc_RemoveSelection).not.toHaveBeenCalled();
     expect(editor.added[0]).toMatchObject({ text: 'Looks right.', author: 'Sam Rivera', userId: 'owner-1' });
   });
 
