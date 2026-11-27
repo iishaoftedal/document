@@ -15,7 +15,7 @@
  * - Words found for a quote are let go once the comment is on them, so nothing is left picked.
  */
 import { getEditorContext, type EditorApi } from './agent-plugin/editor-bridge';
-import { getEditorUser, USER_NAME_LIMIT } from './onlyoffice/editor-user';
+import { authorIdFor, getEditorUser, USER_NAME_LIMIT } from './onlyoffice/editor-user';
 import { getReadonlyMode } from './onlyoffice/readonly';
 
 /** Longest comment taken, and longest quote looked for. */
@@ -105,7 +105,7 @@ export function addComment(payload: Record<string, unknown>): CommentAdded {
   data.asc_putText(text);
   data.asc_putUserName(author);
   const user = getEditorUser();
-  data.asc_putUserId(author === user.name ? user.id : `author-${author.toLowerCase().replace(/\W+/g, '-')}`);
+  data.asc_putUserId(author === user.name ? user.id : authorIdFor(author));
   data.asc_putTime?.(String(Date.now()));
   data.asc_putSolved?.(false);
   api.asc_addComment(data);

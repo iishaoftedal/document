@@ -1,4 +1,4 @@
-import { getEditorUser } from './onlyoffice/editor-user';
+import { editorPeopleFor, getEditorUser } from './onlyoffice/editor-user';
 import { isEmbedMode } from './embed-mode';
 import { getDocumentCloseRevision } from './document-open';
 import 'ranui/message';
@@ -223,6 +223,17 @@ function createPersonalEditorInstance(config: {
       },
     },
     events: {
+      // The editor asks who a comment's author is when it draws their card: a picture for an author the host named
+      // (onlyoffice/editor-user.ts), in place of their initials. Any other ask (the @ list of people to mention)
+      // is answered with nobody, so it never waits.
+      onRequestUsers: (event: { data?: { c?: string; id?: unknown } }) => {
+        const kind = event?.data?.c ?? 'mention';
+        const users = kind === 'info' ? editorPeopleFor(event?.data?.id) : [];
+        (window.editor as unknown as { setUsers?: (data: unknown) => void } | undefined)?.setUsers?.({
+          c: kind,
+          users,
+        });
+      },
       onAppReady: () => {
         markEditorFrameReady();
         // The pdf editor's offline path differs from word/cell/slide: those

@@ -55,3 +55,50 @@ export function setEditorUser(user: EditorUser | null): void {
 export function getEditorUser(): EditorUser {
   return current;
 }
+
+/**
+ * Pictures for comment authors the host names (added in this copy, 2026-11-26). The editor draws a comment's
+ * author as a round mark with their initials; when it has a picture for that author it draws the picture instead.
+ * An open message may name authors with a picture (`people: [{ name, image }]`), so an author that is not a person
+ * (Wally's own comments, signed "Wally (AI)") is not drawn like one. A picture is a small image held in the message
+ * itself (a data: address, PNG, JPEG or SVG, at most 64 KB): nothing is fetched from anywhere. The next open
+ * replaces the list.
+ */
+export interface EditorPerson {
+  id: string;
+  name: string;
+  image: string;
+}
+
+export const PICTURE_LIMIT = 64 * 1024;
+
+/** The id a comment carries for an author who is not the person the document opened as (embed-comments.ts). */
+export const authorIdFor = (name: string): string => `author-${name.toLowerCase().replace(/\W+/g, '-')}`;
+
+let people: EditorPerson[] = [];
+
+/** The authors an open message names with a picture; anything else in the list is left out. */
+export function editorPeopleFrom(value: unknown): EditorPerson[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 20)
+    .map((raw) => {
+      const one = (raw ?? {}) as { name?: unknown; image?: unknown };
+      const user = editorUserFrom({ name: one.name });
+      const image = typeof one.image === 'string' ? one.image : '';
+      const fine =
+        /^data:image\/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(image) && image.length <= PICTURE_LIMIT;
+      return user && fine ? { id: authorIdFor(user.name), name: user.name, image } : null;
+    })
+    .filter((one): one is EditorPerson => one !== null);
+}
+
+export function setEditorPeople(list: EditorPerson[]): void {
+  people = list;
+}
+
+/** The authors with a picture among the ids the editor asks about. */
+export function editorPeopleFor(ids: unknown): EditorPerson[] {
+  const asked = Array.isArray(ids) ? ids : [ids];
+  return people.filter((one) => asked.includes(one.id));
+}

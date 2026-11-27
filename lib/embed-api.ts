@@ -7,7 +7,7 @@ import { openDocumentFromUrl } from './document';
 import { getReadonlyMode, requestSaveDocument, setReadonlyMode } from './onlyoffice-editor';
 import { readSelection, replaceSelection, SelectionError, watchSelection } from './embed-selection';
 import { addComment, CommentError } from './embed-comments';
-import { editorUserFrom, setEditorUser } from './onlyoffice/editor-user';
+import { editorPeopleFrom, editorUserFrom, setEditorPeople, setEditorUser } from './onlyoffice/editor-user';
 import { captureSavePoint, commitSavePoint } from './onlyoffice/save-point';
 import { hasUnsavedChanges, markDocumentSaved, onUnsavedChangesChange } from './unsaved-guard';
 
@@ -158,6 +158,8 @@ async function handleOpen(payload: Record<string, any>): Promise<void> {
   // Who the document opens as: its comments are signed with this name (added in this copy, 2026-11-26;
   // see onlyoffice/editor-user.ts). An open with no `user` is "Guest", as before.
   setEditorUser(editorUserFrom(payload.user));
+  // Pictures for comment authors who are not people (Wally), in place of their initials.
+  setEditorPeople(editorPeopleFrom(payload.people));
 
   if (payload.url) {
     await openDocumentFromUrl(String(payload.url), payload.fileName, {
