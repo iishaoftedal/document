@@ -533,6 +533,21 @@ describe('onlyoffice-editor', () => {
       });
     });
 
+    it('mounts as the person the embedding page named, so comments carry their name (added in this copy)', async () => {
+      const { setEditorUser } = await import('../../lib/onlyoffice/editor-user');
+      setEditorUser({ id: 'owner-1', name: 'Sam Rivera' });
+      try {
+        const config = await createAndGetConfig({
+          fileName: 'lease.docx',
+          fileType: 'docx',
+          binData: new ArrayBuffer(8),
+        });
+        expect(config.editorConfig.user).toEqual({ id: 'owner-1', name: 'Sam Rivera' });
+      } finally {
+        setEditorUser(null);
+      }
+    });
+
     it('always passes a non-empty Guest user to avoid the getInitials crash (#25)', async () => {
       const config = await createAndGetConfig({
         fileName: 'preview.docx',

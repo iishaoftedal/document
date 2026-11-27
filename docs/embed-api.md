@@ -234,6 +234,44 @@ sendEditorCommand('document:replace-selection', { lines: ['New words.'], expect:
 
 ---
 
+## Comments and who is writing
+
+Added in this copy (iishaoftedal/document), 2026-11-26. Comments are the editor's own: kept inside the file the way
+Word, Excel and PowerPoint keep them, so they show there too. Two things are new for the host.
+
+**Who the document opens as.** Every open message (`document:open-file` and the others) takes a `user`. The editor
+opens as that person, and the comments, replies and tracked changes made there are signed with their name. With no
+`user`, it opens as "Guest", as before. The name is one line of up to 80 letters. It goes into the document and
+nowhere else: the editor has no server and does not store, log or send it.
+
+```js
+sendEditorCommand('document:open-file', { file, user: { id: 'owner-42', name: 'Sam Rivera' } });
+```
+
+**A comment from the host.**
+
+```js
+sendEditorCommand('document:add-comment', {
+  text: 'Check this matches the books.',
+  author: 'Wally',
+  quote: 'The rent is $2,400 a month',
+});
+// Response: { type: 'document:comment-added', payload: { quote: 'The rent is $2,400 a month', author: 'Wally' } }
+```
+
+- With no `quote`, the comment goes on what is picked (in a spreadsheet, the picked cell).
+- With a `quote`, the editor finds those exact words, capitals included. If they are in the document once, the
+  comment goes on them. If not, nothing is added and the answer is `document:error` with `code: 'not-found'`, or
+  `'not-once'` when they are there more than once. Write and Slides only: a spreadsheet takes no quote
+  (`'not-supported'`).
+- `author` signs the comment. Left out, it is the person the document was opened as.
+- It goes through the same path as the agent's `add_comment` tool, as one step the editor's own Undo takes back,
+  and it marks the document as changed (`document:dirty-changed`), so the host saves it as it saves any edit.
+- Other codes on `document:error`: `read-only`, `no-document`, `bad-request` (no words, or an empty or over-long
+  quote).
+
+---
+
 ## Query current state
 
 ```js
@@ -289,7 +327,7 @@ window.addEventListener('message', (event) => {
 | Direction       | Type                          | Description                                        |
 | --------------- | ----------------------------- | -------------------------------------------------- |
 | parent → iframe | `document:open-url`           | Open document from URL                             |
-| parent → iframe | `document:open-file`          | Open document from `File` / `Blob`                 |
+| parent → iframe | `document:open-file`          | Open document from `File` / `Blob` (and `user`)    |
 | parent → iframe | `document:open-buffer`        | Open document from `ArrayBuffer` / `Uint8Array`    |
 | parent → iframe | `document:set-readonly`       | Set read-only or editable                          |
 | parent → iframe | `document:save`               | Save and return `File`                             |
@@ -297,6 +335,7 @@ window.addEventListener('message', (event) => {
 | parent → iframe | `document:get-state`          | Query current state                                |
 | parent → iframe | `document:get-selection`      | Read what is picked (added in this copy)           |
 | parent → iframe | `document:replace-selection`  | Write new words over the picked ones (this copy)   |
+| parent → iframe | `document:add-comment`        | Add a comment, on exact words or what is picked    |
 | iframe → parent | `document:ready`              | Editor initialised                                 |
 | iframe → parent | `document:opened`             | Document opened                                    |
 | iframe → parent | `document:readonly-changed`   | Read-only state changed                            |
@@ -306,4 +345,5 @@ window.addEventListener('message', (event) => {
 | iframe → parent | `document:selection`          | What is picked (`kind`, `letters`, `text`/`range`) |
 | iframe → parent | `document:selection-changed`  | What is picked changed (`{ kind, letters }`)       |
 | iframe → parent | `document:selection-replaced` | New words written over the picked ones             |
+| iframe → parent | `document:comment-added`      | The comment is in (`{ author, quote? }`)           |
 | iframe → parent | `document:error`              | Operation failed                                   |
